@@ -109,9 +109,9 @@ def primes_e(n):
 
 
 if __name__ == "__main__":
-    # run_test("test/5.Primes", primes_a, CompareAs.INT, max_tests = 8)
-    # run_test("test/5.Primes", primes_b, CompareAs.INT, max_tests = 8)
-    # run_test("test/5.Primes", primes_c, CompareAs.INT, max_tests = 8)
-    # run_test("test/5.Primes", primes_d, CompareAs.INT, max_tests = 10)
+    run_test("test/5.Primes", primes_a, CompareAs.INT, max_tests = 8)
+    run_test("test/5.Primes", primes_b, CompareAs.INT, max_tests = 8)
+    run_test("test/5.Primes", primes_c, CompareAs.INT, max_tests = 8)
+    run_test("test/5.Primes", primes_d, CompareAs.INT, max_tests = 10)
     run_test("test/5.Primes", primes_e, CompareAs.INT, max_tests = 0)
     
