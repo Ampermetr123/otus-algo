@@ -36,7 +36,7 @@ int main() {
   //test_array_internal<MatrixArray4>();
 
 
-  const std::vector<size_t> sizes_short = { 1'000, 10'000, 100'000 };
+  const std::vector<size_t> sizes_short = { 1'000, 10'000, 100'000 , 10'000'000};
   const std::vector<size_t> sizes_long = { 1'000, 10'000, 100'000, 1'000'000, 10'000'000 };
 
   {
