@@ -36,11 +36,6 @@ namespace myarray {
     size_t size = 0;
     T* pmem;
 
-    inline void check_bounds(size_t idx) const {
-      if (idx <= size)
-        throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + ": index [" + std::to_string(idx) + " is out of bound");
-    }
-
     static void reconstruct(std::allocator<T>& alloc, T* psrc, T* pdst, size_t src_size) {
       for (size_t i = 0; i < src_size; i++) {
         alloc_tr::construct(alloc, &pdst[i], std::move(psrc[i]));
@@ -65,7 +60,6 @@ namespace myarray {
         for (size_t i = m; i < other.size; i++) {
           add(other.pmem[i]);
         }
-
         // if other < current
         while (size != other.size) {
           removeLast();
@@ -118,7 +112,7 @@ namespace myarray {
       insert(it, size);
     }
 
-    void add(T&& it) override {
+    void add(T&& it)  {
       insert(std::forward<T>(it), size);
     }
 
@@ -128,7 +122,8 @@ namespace myarray {
     }
 
     T& get(size_t idx) override {
-      return const_cast<T&>(std::as_const(*this).get(idx));
+      CHECK_BOUNDS(idx, size);
+      return pmem[idx];
     }
 
     const T& get(size_t idx) const override {
@@ -136,60 +131,30 @@ namespace myarray {
       return pmem[idx];
     };
 
-    void insert(const T& it, size_t idx) override {
-      CHECK_BOUNDS(idx, size + 1);
-      // Так как эта функция шаблона виртуальная, она инстанцируетс даже тогда,
-      // когда не происходит её вызов, поэтому проверяем, что в T не удален конструктор копирования, чтобы избежать ошибок компиляции
+    T& at(size_t idx) const {
+      return pmem[idx]; // No check bounds!
+    };
+
+    void insert(const T& it, size_t idx) override  {
+      // Так как эта функция шаблона виртуальная, она инстанцируетс даже тогда, когда не происходит её вызов, 
+      // поэтому проверяем, что в T имеется конструктор копирования, 
       if constexpr (!std::is_copy_constructible_v<T>) {
         throw std::runtime_error(std::string("Function not supported for type ") + typeid(T).name());
-      }
-      else
+      } else
       {
-        const bool need_realloc = (size >= capacity || capacity == 0);
-        if (need_realloc) { // конструируем объекты в новой памяти  
-          auto new_size = ExpandStrategy::size(size);
-          auto pdst = alloc_tr::allocate(alloc, new_size);
-          ExpandArray::reconstruct(alloc, pmem, pdst, idx);
-          alloc_tr::construct(alloc, &pdst[idx], it);
-          ExpandArray::reconstruct(alloc, pmem + idx, pdst + idx + 1, size - idx);
-          if (capacity > 0) {
-            alloc_tr::deallocate(alloc, pmem, capacity);
-          }
-          capacity = new_size;
-          pmem = pdst;
-        }
-        else {
-          if (size > 0 && idx != size) { // ...или перемещаем объекты вправо в имеющейся памяти
-            alloc_tr::construct(alloc, &pmem[size], std::move(pmem[size - 1]));
-            for (auto i = size - 1; i > idx; i--) {
-              pmem[i] = std::move(pmem[i - 1]);
-            }
-            pmem[idx] = it;
-          }
-          else {
-            alloc_tr::construct(alloc, &pmem[idx], it);
-          }
-        }
-        size += 1;
+        insert<>(it, idx);
       }
     }
 
-
-    void insert(T&& it, size_t idx) override {
-      CHECK_BOUNDS(idx, size + 1);
-      // Так как функция виртуальная, то она инстанцируетс даже тогда,
-      // когда не происходит её вызова, поэтому проверяем, что в T не удален конструктор перемещения
-      if constexpr (!std::is_move_constructible_v<T>) {
-        throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + ": index " + std::to_string(idx) + " is out of bound");
-      }
-      else
-      {
+    template<typename U>
+    void insert(U&& it, size_t idx)  {
+        CHECK_BOUNDS(idx, size + 1);
         const bool need_realloc = (size >= capacity || capacity == 0);
         if (need_realloc) { // конструируем объекты в новой памяти  
           auto new_size = ExpandStrategy::size(size);
           auto pdst = alloc_tr::allocate(alloc, new_size);
           ExpandArray::reconstruct(alloc, pmem, pdst, idx);
-          alloc_tr::construct(alloc, &pdst[idx], std::forward<T>(it));
+          alloc_tr::construct(alloc, &pdst[idx], std::forward<U>(it));
           ExpandArray::reconstruct(alloc, pmem + idx, pdst + idx + 1, size - idx);
           if (capacity > 0) {
             alloc_tr::deallocate(alloc, pmem, capacity);
@@ -203,14 +168,13 @@ namespace myarray {
             for (auto i = size - 1; i > idx; i--) {
               pmem[i] = std::move(pmem[i - 1]);
             }
-            pmem[idx] = std::forward<T>(it);
+            pmem[idx] = std::forward<U>(it);
           }
           else {
-            alloc_tr::construct(alloc, &pmem[idx], std::forward<T>(it));
+            alloc_tr::construct(alloc, &pmem[idx], std::forward<U>(it));
           }
         }
         size += 1;
-      }
     }
 
     void remove(size_t idx) override {

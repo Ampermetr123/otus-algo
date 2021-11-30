@@ -25,13 +25,8 @@ namespace myarray {
       }
     }
 
-    void add(T&& it) override {
-      if constexpr (!std::is_move_constructible_v<T>) {
-        throw std::runtime_error(std::string("Function not supported for type ") + typeid(T).name());
-      }
-      else {
-        v.push_back(std::forward<T>(it));
-      }
+    void add(T&& it) {
+      v.push_back(std::forward<T>(it));
     }
 
     void removeLast() override {
@@ -39,42 +34,33 @@ namespace myarray {
     };
 
     const T& get(size_t idx) const override {
-      return v.at(idx);
+      CHECK_BOUNDS(idx, v.size());
+      return v[idx];
     }
 
     T& get(size_t idx) override {
-      return v.at(idx);
+      CHECK_BOUNDS(idx, v.size());
+      return v[idx];
     }
 
     void insert(const T& it, size_t idx) override {
-      if (idx < 0 || idx > v.size()) {
-        throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + ": index [" + std::to_string(idx) + " is out of bound");
-      }
       if constexpr (!std::is_copy_constructible_v<T>) {
         throw std::runtime_error(std::string("Function not supported for type ") + typeid(T).name());
       }
       else {
-        v.insert(std::begin(v) + idx, it);
+        insert<>(it, idx);
       }
     }
 
-    void insert(T&& it, size_t idx) override {
-      if (idx < 0 || idx > v.size()) {
-        throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + ": index [" + std::to_string(idx) + " is out of bound");
-      }
-      if constexpr (!std::is_move_constructible_v<T>) {
-        throw std::runtime_error(std::string("Function not supported for type ") + typeid(T).name());
-      }
-      else {
-        v.insert(std::begin(v) + idx, std::forward<T>(it));
-      }
+    template<class U>
+    void insert(U&& it, size_t idx) {
+      CHECK_BOUNDS(idx, v.size() + 1);
+      v.insert(std::begin(v) + idx, std::forward<U>(it));
     };
 
 
     void remove(size_t idx) override {
-      if (idx < 0 || idx >= v.size()) {
-        throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + ": index [" + std::to_string(idx) + " is out of bound");
-      }
+      CHECK_BOUNDS(idx, v.size());
       v.erase(std::begin(v) + idx);
     };
 
