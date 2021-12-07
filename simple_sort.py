@@ -4,8 +4,14 @@ import multi_func_tester as mft
 import itertools as itools
 
 
-def swap(d, i, j):
-    d[i], d[j] = d[j], d[i]
+def swap(d: array, i, j):
+    # for list or array we can do: d[i], d[j] = d[j], d[i]
+
+    # only for array  (a little bit more efficient)
+    x = d[i]
+    d[i] = d[j]
+    d[j] = x
+
 
 ################################################################################
 #                                 BUBBLE SORTS                                 #
@@ -26,14 +32,14 @@ def bubble_sort_opt(size, d):
     '''Сорт. пузырьком с опт. '''
     size = len(d)
     swapped = True if size > 0 else False
-    n = size
+    i = 0
     while swapped == True:
         swapped = False
-        for j in range(0, n-1):
+        i += 1
+        for j in range(0, size-i):
             if d[j] > d[j+1]:
                 swap(d, j, j+1)
                 swapped = True
-        n -= 1
     return d
 
 
@@ -134,13 +140,14 @@ def shell_sort_1(size, d):
 
 
 def shell_sort_2(size, d):
-    '''Сорт. Шелла 2^k-1'''
+    '''Сорт. Шелла 2^k+1'''
     n = len(d)
     # последовательность по формуле
-    seq = itools.starmap(lambda k: 2**k - 1, ((k,)
-                         for k in itools.count(1, 1)))
-    # ограничили размером N / 2
-    gaps = list(itools.takewhile(lambda x: x <= (n // 2), seq))
+    seq = itools.starmap(lambda k: 2**k + 1,
+                         ((k,) for k in itools.count(1, 1)))
+    # ограничили размером N / 2, префикс списка 1
+    gaps = list(itools.chain(
+        (1,), itools.takewhile(lambda x: x <= (n // 2), seq)))
     return shell_sort_impl(d, list(reversed(gaps)))
 
 
@@ -169,6 +176,7 @@ def shell_sort_3(size_, d):
 #                          MAIN (TEST AND REPORT GENERATION)                   #
 ################################################################################
 
+
 if __name__ == "__main__":
 
     test_folders = (
@@ -179,10 +187,10 @@ if __name__ == "__main__":
     )
 
     testing_func_list = [
-        (bubble_sort, range(5)),
+       # (bubble_sort, range(5)),
         (bubble_sort_opt, range(5)),
         (insert_sort_swap, range(5)),
-        (insert_sort_shift, range(5)),
+        (insert_sort_shift, range(6)),
         (insert_sort_bs, range(7)),
         (shell_sort_1, range(6)),
         (shell_sort_2, range(6)),
@@ -199,13 +207,14 @@ if __name__ == "__main__":
         make_description_for_test
     )
 
-    with open("report_all.md", 'w') as f:
-        
+    with open("report_simple_all.md", 'w', encoding='utf-8') as f:
+
         f.write("# Простые сортировки \n\n")
-        
+
         for folder_path in test_folders:
             folder_name = folder_path.split('/')[-1]
-            tester.do_test(folder_path, ft.load_as_int_arrays,
+            tester.do_test(folder_path, 
+                           ft.load_as_int_arrays,
                            ft.load_as_int_arrays)
             tester.write_report(open(1, 'w'))
             tester.write_report(f, f"Тесты '{folder_name}'")

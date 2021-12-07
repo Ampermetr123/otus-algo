@@ -41,7 +41,7 @@ class MultiFuncFolderTester:
     def write_report(self, f, header2: str = None):
         '''Вывод таблицы результатов'''
         if (header2):
-            f.write(f"## {header2}\n\n")
+            f.write(f"\n## {header2}\n\n")
         # header
         f.write('| test no ')
         for func, _rng in self.test_list:
