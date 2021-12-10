@@ -66,3 +66,4 @@ class MultiFuncFolderTester:
                 if self.result[test_no][index] == False:
                     f.write(f' <br> __FAILED__ ')
             f.write('|\n')
+        f.flush()
