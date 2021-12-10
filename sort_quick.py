@@ -110,11 +110,13 @@ def quick_sort_2_impl(d):
 
 
 def quick_sort_1(size_, d):
+    '''Быстрая сорт. classic'''
     reqursion_func_safe_runner(quick_sort_1_impl,  qs_recurion_limit(len(d)), d)
     return d
 
 
 def quick_sort_2(size_, d):
+    '''Быстрая сорт. modern'''
     reqursion_func_safe_runner(quick_sort_2_impl,  qs_recurion_limit(len(d)), d)
     return d
 
