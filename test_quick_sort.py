@@ -23,9 +23,9 @@ if __name__ == "__main__":
     )
 
     testing_func_list = [
-        (quick_sort_1, range(0, 6)),
-        (quick_sort_2, range(0, 6)),
-        (merge_sort, range(0, 7)),
+        (quick_sort_1, range(0, 5)),
+        (quick_sort_2, range(0, 5)),
+        (merge_sort, range(0, 6)),
         (python_sort, range(0, 7)),
     ]
 
