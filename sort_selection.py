@@ -10,7 +10,6 @@ def swap(d, i, j):
     x = d[i]
     d[i] = d[j]
     d[j] = x
-
    
 
 def select_sort(size_, d):
@@ -35,20 +34,19 @@ def heapify(d, root, size):
     L = 2*root+1
     R = 2*root+2
     X = root
-
     if L < size and d[L] > d[X]:
         X = L
     if R < size and d[R] > d[X]:
         X = R
-    
-    if (X == root):
+    if (X == root): # Корень не поменялся
         return
     swap(d, X, root)
-    heapify(d, X, size)
+    
+    heapify(d, X, size) # т.к в позиции X теперь новое число
 
 
 def heap_sort(size_, d):
-    '''Пиромидальная сорт.'''
+    '''Пирамидальная сорт.'''
     if (size := len(d)) == 0:
         return d
 

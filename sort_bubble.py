@@ -28,7 +28,7 @@ def bubble_sort_opt(size_, d):
     i = 0
     while swapped == True:
         swapped = False
-        i += 1
+        i += 1  
         for j in range(0, size-i):
             if d[j] > d[j+1]:
                 swap(d, j, j+1)

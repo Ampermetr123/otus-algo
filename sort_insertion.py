@@ -17,11 +17,9 @@ def insert_sort_swap(size, d):
     size = len(d)
     sz = 0  # граница отсортированной части
     while sz < size:
-        x = d[sz]
-
         # перемещение перестановкой
-        j = sz
-        while j > 0 and d[j] < d[j-1]:
+        j = sz  # x = d[sz] = start max
+        while j > 0 and d[j] < d[j-1]:  # справа налеов по отсортированной части
             swap(d, j, j-1)
             j -= 1
 
@@ -36,9 +34,8 @@ def insert_sort_shift(size, d):
     sz = 0  # граница отсортированной части
     while sz < size:
         x = d[sz]
-
-        # сдвиг вправо до точки вставки
-        j = sz-1
+        # сдвиг отсортированной части вправо до точки вставки
+        j = sz-1  # проход справа налево
         while j >= 0 and x < d[j]:
             d[j+1] = d[j]
             j -= 1

@@ -21,8 +21,7 @@ def reqursion_func_safe_runner(func, recursion_limit, args):
         thread.start()
         thread.join()
     else:
-       func(args)
-
+        func(args)
 
 
 ################################################################################
@@ -51,10 +50,10 @@ def quick_sort_1_impl(d):
                 j -= 1
             else:
                 swap(d, i, j)
-                
-        # Если index > rs, то p = d[rs] - максимальный элемент. 
+
+        # Если index > rs, то p = d[rs] - максимальный элемент.
         # Тогда чтобы разделить на две части берем p = d[rs]-1,  index = d[rs]
-        return min(i, rs) 
+        return min(i, rs)
 
     def sort(d, ls, rs):    # d - data, ls - left side, rs -right side
         if ls < rs:
@@ -91,7 +90,7 @@ def quick_sort_2_impl(d):
         return a
 
     def sort(d, ls, rs):
-        '''sort d[ls,rs]'''   
+        '''sort d[ls,rs]'''
         if ls < rs:
             p = split(d, ls, rs)  # p is on right place
             if (p > ls):
@@ -101,9 +100,9 @@ def quick_sort_2_impl(d):
 
     limit = sys.getrecursionlimit()
     sys.setrecursionlimit(max(limit, qs_recurion_limit(len(d))))
-    
+
     sort(d, 0, len(d)-1)
-    
+
     sys.setrecursionlimit(limit)
 
     return d
@@ -111,15 +110,16 @@ def quick_sort_2_impl(d):
 
 def quick_sort_1(size_, d):
     '''Быстрая сорт. classic'''
-    reqursion_func_safe_runner(quick_sort_1_impl,  qs_recurion_limit(len(d)), d)
+    reqursion_func_safe_runner(
+        quick_sort_1_impl,  qs_recurion_limit(len(d)), d)
     return d
 
 
 def quick_sort_2(size_, d):
     '''Быстрая сорт. modern'''
-    reqursion_func_safe_runner(quick_sort_2_impl,  qs_recurion_limit(len(d)), d)
+    reqursion_func_safe_runner(
+        quick_sort_2_impl,  qs_recurion_limit(len(d)), d)
     return d
-
 
 
 ################################################################################
@@ -133,41 +133,63 @@ def ms_recurion_limit(size):
 
 def merge_sort_impl(d):
     '''Сортировка слиянием'''
-    def merge( d, ls, m, rs): 
+
+    # this varian is often less efficient then next one and so is commented
+    # def merge(d, ls, m, rs):
+    #     '''Merge d[ls1, m) and d[m, rs ]'''
+    #     k = ls
+    #     i = ls
+    #     j = m
+    #     s = []
+    #     while (k <= rs):
+    #         if i >= m:
+    #             s.append(d[j])
+    #             j += 1
+    #         elif j > rs:
+    #             s.append(d[i])
+    #             i += 1
+    #         elif d[i] < d[j]:
+    #             s.append(d[i])
+    #             i += 1
+    #         else:
+    #             s.append(d[j])
+    #             j += 1
+    #         k += 1
+
+    #     for k in range(ls, rs+1):
+    #         d[k] = s.pop(0)
+
+    def merge(d, ls, m, rs):
         '''Merge d[ls1, m) and d[m, rs ]'''
-        k = ls
-        i = ls 
+        i = ls
         j = m
         s = []
-        while ( k <= rs):
-            if i>=m:
-                s.append(d[j])
-                j+=1
-            elif j>rs:
-                s.append(d[i])
-                i+=1
-            elif d[i] < d[j]:
+        while i < m and j <= rs:
+            if d[i] < d[j]:
                 s.append(d[i])
                 i += 1
             else:
                 s.append(d[j])
-                j+=1
-            k +=1
-
+                j += 1
+        while i < m:
+            s.append(d[i])
+            i += 1
+        while j <= rs:
+            s.append(d[j])
+            j += 1
         for k in range(ls, rs+1):
             d[k] = s.pop(0)
-
 
     def sort(d, ls, rs):
         ''' Recursive sort d[ls,rs]'''
         if rs-ls > 1:
-            m = ( ls + rs ) // 2
+            m = (ls + rs) // 2
             sort(d, ls, m)
             sort(d, m+1, rs)
             merge(d, ls, m+1, rs)
         elif rs-ls == 1:
-            if d[rs]<d[ls]:
-                swap(d,ls,rs) 
+            if d[rs] < d[ls]:
+                swap(d, ls, rs)
 
     limit = sys.getrecursionlimit()
     sys.setrecursionlimit(max(limit, ms_recurion_limit(len(d))))
