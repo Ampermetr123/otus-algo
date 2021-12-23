@@ -1,0 +1,9 @@
+cmake_minimum_required(VERSION 3.14.0 FATAL_ERROR)
+
+project(tree
+    VERSION 0.0.1
+    DESCRIPTION "OTUS algo homework 10-11: tree structures"
+    LANGUAGES CXX
+)
+
+add_subdirectory(avl)
