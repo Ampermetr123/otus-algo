@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS ON)
 # Maximum stack is used with BSTree<> and inserting sequantial data x[i+1] > [i];
 #  Stack Size = ( N/1000 * 0.65) МB (debug)
 # 60 MB 
-set(CMAKE_CXX_STACK_SIZE "60000000")
+set(CMAKE_CXX_STACK_SIZE "300000000")
 
 set (Sources
     main.cpp

@@ -1,74 +1,19 @@
 #pragma once
 
 #include <map>
-
-#include "avltree.hpp"
+#include <vector>
+#include <algorithm>
 #include "tools/test_helpers.h"
 
-void test_avl() {
-    std::cerr << "Test heigths for AVLTree<int> tree ...\n";
-    AVLTree<int> avlt;
 
-    // Make tree
-    std::vector<int> input = { 32, 45, 65, 76, 34, 45, 67, 87, 23, 28, 29 };
-    for (const auto& x : input) {
-        avlt.insert(x /* , [](auto* ptr) { std::cerr<<"[-"<<ptr->val<<"]"; delete ptr;}*/);
-    }
-
-    // Coolect resulting h and print tree
-    std::map<size_t, std::vector<int>> mv;
-    avlt.for_each([&mv](auto sptr) {
-        mv[sptr->height].push_back(sptr->val);
-        }
-    );
-    size_t i = 1;
-    while (mv.count(i) > 0)
-        i++;
-    for (auto j = i - 1; j > 0; j--) {
-        std::cerr << "h=" << j << "       ";
-        for (const auto& x : mv[j]) {
-            std::cerr << x << " ";
-        }
-        std::cerr << std::endl;
-    };
-
-    // Check heights
-    try {
-        ASSERT_EQUAL(mv[4], std::vector<int>{45});
-        ASSERT_EQUAL(mv[3], (std::vector<int>{32, 67}));
-        ASSERT_EQUAL(mv[2], (std::vector<int>{28, 76}));
-        ASSERT_EQUAL(mv[1], (std::vector<int>{23, 29, 34, 65, 87}));
-
-        std::cerr << "OK\n";
-    }
-    catch (std::exception& e) {
-        std::cerr << " FAIL: \n    " << e.what() << std::endl;
-    }
-
-}
-
-// void print(AVLTree<int>& avlt) {
-//     std::map<size_t, std::vector<int>> mv;
-//     avlt.for_each([&mv](auto sptr) {
-//         mv[sptr->height].push_back(sptr->val);
-//         }
-//     );
-//     size_t i = 1;
-//     while (mv.count(i) > 0)
-//         i++;
-//     for (auto j = i - 1; j > 0; j--) {
-//         std::cerr << "h=" << j << "       ";
-//         for (const auto& x : mv[j]) {
-//             std::cerr << x << " ";
-//         }
-//         std::cerr << std::endl;
-//     };
-// }
+/**
+ * Тест основных операций, для типов BSTree и AVLTree
+ * @tparam TREE - тип дерева 
+ */
 
 template<typename TREE>
-void test_basic() try {
+void test_tree_basic() try {
     std::cerr << "Basic test for " << typeid(TREE).name() << "... ";
-
     std::vector<int> input = { 32, 45, 65, 76, 34, 45, 67, 87, 23 };
     std::vector<int> input_nr = { 32, 45, 65, 76, 34, 67, 87, 23 }; // без повторов
     std::vector<int> sorted(input_nr);
@@ -80,8 +25,6 @@ void test_basic() try {
         // 1) добавляем элементы и проверяем содержимое
         for (const auto& x : input) {
             tree.insert(x, [&deleted](auto* ptr) { deleted.push_back(ptr->val); delete ptr;});
-            // std::cerr << "\nins " << x << "\n";
-            // print(tree);
         }
 
         for (const auto& x : input_nr) {
@@ -104,6 +47,7 @@ void test_basic() try {
     std::sort(std::begin(deleted), std::end(deleted));
     ASSERT_EQUAL(deleted, sorted);
     std::cerr << "OK\n";
+
 }
 catch (std::exception& e) {
     std::cerr << " FAIL: \n    " << e.what() << std::endl;
