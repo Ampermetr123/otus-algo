@@ -6,4 +6,4 @@ project(tree
     LANGUAGES CXX
 )
 
-add_subdirectory(avl)
+add_subdirectory(tree)

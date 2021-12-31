@@ -23,7 +23,6 @@ private:
     node_uptr root;
     void right_rotate(node_uptr& it);
     void left_rotate(node_uptr& it);
-//    node_uptr& splay(node_uptr& it, const T& x);
     void splay(node_uptr& it, const T& x);
     void walk(const std::function<void(const T&, int)>& f, const Node* it, int depth);
 
@@ -128,6 +127,7 @@ bool SplayTree<T>::search(const T& x) {
     return true;
 }
 
+
 /**
  * Проход по дереву в порядке возрастания с применением функции f
  * f принимает два параметра - значение элемента узла и глубину его расположения в дереве
@@ -139,37 +139,38 @@ void SplayTree<T>::for_each(const std::function<void(const T&, int)>& f) {
     }
 }
 
+
 /***************    PRIVATE FUNCTIONS     **************************************/
 
-/** Поворот дерева с корнем it направо. 
+/** Поворот дерева с конем it направо. 
  *  В результате it станет корнем повернутого дерева*/
 template<typename T>
 void SplayTree<T>::right_rotate(node_uptr& it) {
-        assert(it != nullptr);
-        node_uptr top_right_left = std::move(it->left->right);
-        node_uptr top_left = std::move(it->left->left);
-        node_uptr top = std::move(it->left);
-        top->right = std::move(it);
-        top->right->left = std::move(top_right_left);
-        top->left = std::move(top_left);
-        it = std::move(top);
+    assert(it != nullptr);
+    node_uptr top_right_left = std::move(it->left->right);
+    node_uptr top_left = std::move(it->left->left);
+    node_uptr top = std::move(it->left);
+    top->right = std::move(it);
+    top->right->left = std::move(top_right_left);
+    top->left = std::move(top_left);
+    it = std::move(top);
 
-    }
+}
+
 
 /** Поворот дерева с корнем it налево. 
- *  В результате it станет корнем повернутого дерева*/    
+ *  В результате it станет корнеовернутого дерева*/    
 template<typename T>
-void SplayTree<T>:: left_rotate(node_uptr& it) {
-        assert(it != nullptr);
-        node_uptr top_left_right = std::move(it->right->left); // move B
-        node_uptr top_right = std::move(it->right->right);
-        node_uptr top = std::move(it->right);
-        top->left = std::move(it);
-        top->left->right = std::move(top_left_right);
-        top->right = std::move(top_right);
-        it = std::move(top);
-    }
-
+void SplayTree<T>::left_rotate(node_uptr& it) {
+    assert(it != nullptr);
+    node_uptr top_left_right = std::move(it->right->left); // move B
+    node_uptr top_right = std::move(it->right->right);
+    node_uptr top = std::move(it->right);
+    top->left = std::move(it);
+    top->left->right = std::move(top_left_right);
+    top->right = std::move(top_right);
+    it = std::move(top);
+}
 
 
 template<typename T>
@@ -240,4 +241,3 @@ void SplayTree<T>::walk(const std::function<void(const T&, int)>& f, const Node*
     f(it->val, depth);
     walk(f, it->right.get(), depth + 1);
 }
-

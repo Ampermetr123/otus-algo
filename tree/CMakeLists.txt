@@ -17,6 +17,11 @@ set (Sources
 
 set (Headers
     avltree.hpp
+    bstree.hpp
+    splay.hpp
+    test_base.h
+    test_profile.h
+    test_splay.h
 )
 
 add_executable(${This} main.cpp)
