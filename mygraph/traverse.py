@@ -86,7 +86,7 @@ def kosaraju_scc(g: Graph) -> List[FrozenSet[Node]]:
     """
     Поиск компонент сильной связности - КСС
     (SCC - Strongly connetcted components)
-    Алгортимом Косараю
+    Алгортимом Косарайю
     """
     gt = transpose(g)  # Get the transposed graph
     sccs = []

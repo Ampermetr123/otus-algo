@@ -1,6 +1,5 @@
 import pytest
-
-from kosaraju import iter_dfs, kosaraju_scc, rec_dfs, transpose
+from mygrpaph import iter_dfs, kosaraju_scc, rec_dfs, transpose
 
 
 @pytest.fixture
@@ -10,7 +9,6 @@ def graph():
     #  a      \              h
     #    \     \            /
     #      c  -  e    f - g
-    # Note all connectrions is left - to right
     G = {
         "a": ["b", "c"],
         "b": ["a", "e", "d"],
@@ -26,7 +24,7 @@ def graph():
 
 @pytest.fixture
 def orgraph_normal():
-    # Note all connectrions are left to right
+    # Note: all connections are left to right
     #      b  -  d
     #    /   \
     #  a      \              h
@@ -47,7 +45,7 @@ def orgraph_normal():
 
 @pytest.fixture
 def orgraph_reversed():
-    # Note all connectrions are right to left
+    # Note: all connections are right to left
     #      b  -  d
     #    /   \
     #  a      \              h
@@ -68,7 +66,7 @@ def orgraph_reversed():
 
 @pytest.fixture
 def graph_with_scc():
-    #  Графи из примера, разобранного на лекции
+    #  Граф из примера, разобранного на лекции
     G = {
         "a": ["b"],
         "b": ["e", "f", "c"],

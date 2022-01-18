@@ -1,5 +1,6 @@
 __version__ = "0.1.0"
 
+from .demucron import demucron_topsort
 from .traverse import (
     AdjencyVector,
     Graph,
@@ -18,4 +19,5 @@ __all__ = [
     "Node",
     "AdjencyVector",
     "Graph",
+    "demucron_topsort",
 ]

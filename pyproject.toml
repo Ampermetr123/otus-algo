@@ -1,11 +1,12 @@
 [tool.poetry]
-name = "kosaraju"
+name = "mygraph"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.8poetrypoetr"
+python = "^3.10"
+pytest = "^6.2.5"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
 pytest-cov = "^3.0.0"
