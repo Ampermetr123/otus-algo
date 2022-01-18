@@ -1,5 +1,6 @@
 import pytest
-from mygrpaph import iter_dfs, kosaraju_scc, rec_dfs, transpose
+
+from mygraph import iter_dfs, kosaraju_scc, rec_dfs, transpose
 
 
 @pytest.fixture

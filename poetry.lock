@@ -399,8 +399,8 @@ testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", 
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.8poetrypoetr"
-content-hash = "2ccc68ce7ce5d03fd86d92ff78d80ede57037561dd1c051f2122e61dc9bb159b"
+python-versions = "^3.10"
+content-hash = "651388e408f5e6bc525e4daa9cb5cccc5270883db8ecba3fef9caf42b641e999"
 
 [metadata.files]
 atomicwrites = [
