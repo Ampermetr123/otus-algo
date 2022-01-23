@@ -1,6 +1,6 @@
 import pytest
 
-from mygraph.kruskal import *  # noqa
+from mygraph.mst import *  # noqa
 
 
 @pytest.fixture
