@@ -2,12 +2,10 @@ from typing import FrozenSet, List
 
 # Для алгоритма Демукрона граф задается матрицей смежности
 
-inf = float("inf")
-
 
 def demucron_topsort(g: List[List[int]]) -> List[FrozenSet[int]]:
     """
-    Алгоритм Демукрона
+    Топологическая сортировка графа. Алгоритм Демукрона.
     """
     topology = []
 
