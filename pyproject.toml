@@ -17,6 +17,7 @@ black = {version = "^21.12b0", allow-prereleases = true}
 mypy = "^0.931"
 pydantic = "^1.9.0"
 isort = "^5.10.1"
+pytest-timeout = "^2.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
