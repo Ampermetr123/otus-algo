@@ -13,8 +13,9 @@ the root to another fragment"
 """
 
 from collections import namedtuple
-from heapq import heappop, heappush
 from typing import List, Set, Tuple, Union
+
+from .heap_queue import HeapQueue
 
 Edge = Tuple[int, int]  # ребро
 AdjencyMatrix = List[
@@ -206,16 +207,15 @@ def boruvka(gm: AdjencyMatrix) -> List[Edge]:
 def prim(gm: AdjencyMatrix) -> List[Edge]:
     sz = len(gm)
     stack = [0]  # начинаем с перовй вершины
-    uf = UnionFind(sz)
     EdgeTuple = namedtuple("EdgeTuple", ["w", "v1", "v2"])
     visited: List[int] = []
-    edges: List[EdgeTuple] = []
+    edges = HeapQueue()
     ostov_edges: List[Edge] = []  # список ребер реузльтирующего графа
     while len(stack):
         s = stack.pop()  # текущая вершина
         if s in visited:
             continue
-
+        visited.append(s)
         # добавляем в список ребер для выбора новые ребера
         for j in range(sz):
             if gm[s][j] is None:
@@ -223,17 +223,13 @@ def prim(gm: AdjencyMatrix) -> List[Edge]:
             if j in visited:
                 continue  # не добавляем ребра к тем вершинам, которые уже есть в дереве
             else:
-
-                heappush(edges, EdgeTuple(gm[s][j], s, j))
+                edges.push(EdgeTuple(gm[s][j], s, j))
 
         # выбираем минимальное ребро
         while len(edges) > 0:
-            e: EdgeTuple = heappop(edges)
-            if uf.find(0) == uf.find(
-                e.v2
-            ):  # если ребро образует цикл, то пропускаем его
-                continue
-            uf.union(0, e.v2)
+            e = edges.pop()
+            if e.v2 in visited:
+                continue  # если ребро образует цикл, то пропускаем его
             ostov_edges.append((min(e.v1, e.v2), max(e.v1, e.v2)))
             stack.append(e.v2)
             break
