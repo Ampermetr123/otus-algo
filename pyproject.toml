@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "strings"
+version = "0.1.0"
+description = "template find in string alogrithms"
+authors = ["Ampermetr123 <sb.simonov@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.dev-dependencies]
+pytest-cov = "^3.0.0"
+pre-commit = "^2.17.0"
+flake8 = "^4.0.1"
+mypy = "^0.931"
+isort = "^5.10.1"
+black = {version = "^22.1.0", allow-prereleases = true}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 89
+
+[tool.black]
+line-length = 89
+target-version = ['py310']
+include = '\.pyi?$'
+exclude = '''
+
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | foo.py           # also separately exclude a file named foo.py in
+                     # the root of the project
+)
+'''
