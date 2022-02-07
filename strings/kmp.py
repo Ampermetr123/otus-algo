@@ -44,8 +44,8 @@ def find_string_KMP(patern: str, text: str) -> int:
 
 if __name__ == "__main__":
 
-    # Проверка make_suffix_table(pat) для Боера-Мура
-
+    # Проверка make_suffix_table(pat)
+    
     pat = "BC.ABC.BC.C.ABC"
     print("pat =", pat)
     table = make_pi_function(pat)
