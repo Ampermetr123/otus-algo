@@ -9,7 +9,13 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
-from strings import find_string_BM, find_string_BMH, find_string_brute, find_string_shift
+from strings import (
+    find_string_BM,
+    find_string_BMH,
+    find_string_brute,
+    find_string_KMP,
+    find_string_shift,
+)
 
 
 def repeat(func, n=1):
@@ -30,13 +36,14 @@ if __name__ == "__main__":
 
     rt = 20
     # repeat times for each function call
-    rng = range(3, 5)  # диапазон тестов
+    rng = range(3, 6)  # диапазон тестов
 
     testing_func_list = [
         (repeat(find_string_brute, rt), rng),
         (repeat(find_string_shift, rt), rng),
         (repeat(find_string_BMH, rt), rng),
         (repeat(find_string_BM, rt), rng),
+        (repeat(find_string_KMP, rt), rng),
     ]
 
     def make_description_for_test(args):
