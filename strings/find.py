@@ -97,27 +97,27 @@ def find_string_BMH(patern: str, text: str) -> int:
 
 # 4) Реализовать алгоритм Бойера-Мура, 2 байта.
 
-# Поиск в строке text подстроки patern
-# Возвращает индекс начала подстрки или -1, если подстрока отсутсвует
+# Вспомогательная функция для алгоритма Боера-Мура
+
 def make_suffix_table(pat: str) -> List[int]:
-    """Строим таблицу, в которой индекс - размер суффикса,
-    значение, смещение шаблона для полного повтора этого суффикса
-    или для частичного повтора в начале строки
+    """Строит таблицу, в которой индекс - размер суффикса,
+    а значение - смещение шаблона для полного повтора этого суффикса
+    или для его частичного повтора с начала строки 
     """
     psz = len(pat)
     table = [0] * psz
     table[0] = psz
 
     #           Example
-    # ABABC|AB           \\ patern (len=7)
-    #   <-  ^
-    #       i = 2  (AB)       \\  i = 1, 2, 3, 4, 5, 6
-    #  <- ^
-    #     j = len-i-1 = 4     \\  j = 4, 3, 2, 1, 0
+    # A B A B C A B           \\ patern (len=7)
+    #   <-^
+    #     i = 3  (AB)       \\  i = 1, 2, 3, 4, 5, 6
+    #        <- ^
+    #           j = len-1-1 = 4     \\  j = 5, 4, 3, 2, 1, 0
     for i in range(1, psz):
         # Строка делится на две части индексом  i; i - размер суффикса.
         # ищем совпадение суфикса в левой части шаблна;
-        for j in range(psz - i - 1, -1, -1):
+        for j in range(psz - 1 - 1, -1, -1):
             k = 1  # index on suffix
             # сравниваем справа налево суфикс и строку
             while pat[j + 1 - k] == pat[-k] and k <= i and k <= j + 1:
@@ -130,6 +130,8 @@ def make_suffix_table(pat: str) -> List[int]:
     return table
 
 
+# Поиск в строке text подстроки patern
+# Возвращает индекс начала подстрки или -1, если подстрока отсутсвует
 def find_string_BM(patern: str, text: str) -> int:
     """Алгоритм Бойера — Мура"""
 
@@ -169,17 +171,16 @@ def find_string_BM(patern: str, text: str) -> int:
 
 if __name__ == "__main__":
 
-    # Проверка make_suffix_table(pat) для Боера-Мура
-
+    # Демонтсрация и проверка функции make_suffix_table(pat) для Боера-Мура
     pat = "BC.ABC.BC.C.ABC"  # из лекции
     print("pat =", pat)
     table = make_suffix_table(pat)
     assert table == [15, 4, 6, 9, 9, 9, 13, 13, 13, 13, 13, 13, 13, 13, 13]
     print(table)
 
-    #           *
-    # =....xLOKOL......
-    #     KOLOKOL
+    #             *
+    # =....xKOL......
+    #       KOLOKOL
     #
     # 1 L 4
     # 2 OL 4
@@ -194,11 +195,31 @@ if __name__ == "__main__":
     print(table)
     assert table == [7, 4, 4, 4, 4, 4, 4]
 
+    #                        *       *
+    # =.............xAB......
+    #       ABABABBBABABAB
+    #           ABABABBBABABAB
+
+    # 1 B 2
+    # 2 AB 2
+    # 3 BAB 2
+    # 4 ABAB 2
+    # 5 BABAB 2
+    # 6 ABABAB 8
+    # ...
+    # 9 BBBABАBAB 8
+    pat = "ABABABBBABABAB"
+    print("pat =", pat)
+    table = make_suffix_table(pat)
+    print(table)
+
+    # "Человеческая" строка
     pat = "They're putting"
     print("pat =", pat)
     table = make_suffix_table(pat)
     print(table)
 
+    # "Человеческая" строка
     pat = "We say that Napoleon wished to invade Russia and invaded it."
     print("pat =", pat)
     table = make_suffix_table(pat)
