@@ -32,15 +32,13 @@ def get_primes(n):
 def make_hash_func(seed: int, m: int):
     """Создает хэшфункцию
     seed - соль
-    m - максимальное плнируемое значение хэш функции
+    m - максимальное значение хэш функции
     """
     digits = int(math.log2(m) / 8 + 1)
-    h = blake2b(digest_size=digits, salt=str(seed).encode())
-
     def func(x):
+        h = blake2b(digest_size=digits, salt=str(seed).encode())
         h.update(str(x + seed).encode())
         return int(h.hexdigest(), base=16) % m
-
     return func
 
 
@@ -96,4 +94,5 @@ if __name__ == "__main__":
         if real != res and real is True:
             fn += 1  # не должны попадать сюда!
 
-    print(f"False Positive count {fp}  - {fp/total*100}% ")
+    print(f"False-positive count: {fp}  ({fp/total*100}%) ")
+    print(f"False-negative count: {fn}  ({fn/total*100}%) ")
