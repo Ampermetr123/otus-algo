@@ -21,7 +21,7 @@ private:
     size_t buckets_count = 0;
     size_t elements_count = 0;
     BucketVector buckets;
-    
+
     size_t bucket_index(size_t hashCode, size_t vector_size);
     std::pair<size_t, typename Bucket::iterator> find_keyval(const Key& key);
     void rehash();
@@ -32,7 +32,7 @@ public:
     bool find(const Key& key);
     void erase(const Key& key);
     T& at(const Key& key);
-    
+
     size_t size() {
         return elements_count;
     };
@@ -54,9 +54,10 @@ public:
         typename BucketVector::iterator vector_end;
         typename Bucket::iterator bucket_iter;
     public:
-        typedef typename KeyVal value_type;
-        typedef typename KeyVal* pointer;
-        typedef typename KeyVal& reference;
+       // using KeyVal = std::pair<const Key, T>;
+        typedef KeyVal value_type;
+        typedef KeyVal* pointer;
+        typedef KeyVal& reference;
 
         iterator(typename BucketVector::iterator begin, typename BucketVector::iterator end)
             : vector_iter(begin), vector_end(end) {
@@ -154,7 +155,7 @@ void HashTable<Key, T, Hash>::rehash() {
     auto size = buckets.size() * 2;
     BucketVector new_buckets(size);
     size_t new_buckets_count = 0;
-   
+
     for (auto& kv : *this) {
         auto hash_code = get_hash_code(kv.first);
         auto idx = bucket_index(hash_code, size);
@@ -244,7 +245,7 @@ T& HashTable<Key, T, Hash>::at(const Key& key) {
  */
 template <typename Key, typename T, typename Hash>
 void HashTable<Key, T, Hash>::erase(const Key& key) {
-    auto& [idx, it] = find_keyval(key);
+    const auto& [idx, it] = find_keyval(key);
     buckets[idx]->erase(it);
     elements_count -= 1;
     if (buckets[idx]->empty()) {

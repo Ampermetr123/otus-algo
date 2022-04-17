@@ -28,4 +28,5 @@ if(NOT googletest_POPULATED)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 endif()
 
-add_subdirectory(hashtable)
+#add_subdirectory(hashtable)
+add_subdirectory(utest)
