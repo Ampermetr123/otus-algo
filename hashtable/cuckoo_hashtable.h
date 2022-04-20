@@ -12,50 +12,34 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <tuple>
 #include <algorithm>
+#include <deque>
 #include "location.h"
+#include "cuckoo_traits.h"
 
 
- /*******************************************************************************
-  *                          Configuration templates                            *
-  *******************************************************************************/
-  /*  CHT = Cuckoo Hash Table */
+ /************************************************************************
+  *                          Helpers                                     *
+  ************************************************************************/
 
-struct CHT_Traits_Classic__ {};
-struct CHT_Traits_Greed__ {};
+// compile time pow
+template<class T>
+inline constexpr T ct_pow(const T base, unsigned const exp){
+    return (exp == 0) ? 1 : (base * ct_pow(base, exp-1));
+}
 
-enum class InsertMethod {
-    classic, // Классическая вставка через перестановку (Rasmus Pagh original)
-    greed // "Жадный" алгоритм для вставки
-};
+static constexpr size_t evict_to_queue_size(size_t evict_sz, size_t locations_count) {
+    if (locations_count > 2) {
+        return  locations_count *  (ct_pow((locations_count - 1), evict_sz) - 1) / (locations_count-2);
+    } else {
+        return 2*(evict_sz+1);
+    }
+}
 
-template<typename T>
-struct CHT_Traits {};
-template<>
-struct CHT_Traits<CHT_Traits_Classic__> {
-    static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_loop = 12;
-    static inline constexpr size_t initial_location_size = 10;
-    static inline constexpr size_t max_rehash_tryes = 3;
-    static inline constexpr auto insert_method = InsertMethod::classic;
-};
-
-template<>
-struct CHT_Traits<CHT_Traits_Greed__> {
-    static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_loop = 24;
-    static inline constexpr size_t initial_location_size = 10;
-    static inline constexpr size_t max_rehash_tryes = 3;
-    static inline constexpr auto insert_method = InsertMethod::greed;
-};
-
-using CHT_Traits_Greed = CHT_Traits<CHT_Traits_Greed__>;
-using CHT_Traits_Classic = CHT_Traits<CHT_Traits_Classic__>;
-
-
-/************************************************************************
- *                          CuckooHashTable                             *
- ************************************************************************/
+ /************************************************************************
+  *                          CuckooHashTable                             *
+  ************************************************************************/
 template <
     typename Key, typename T, typename HashFunc, std::size_t E,
     typename Traits = CHT_Traits_Classic,
@@ -63,27 +47,34 @@ template <
 >
 class CuckooHashTable {
     static_assert(Traits::resize_factor > 1, "Traits::resize_factor incorrect value!");
-    static_assert(Traits::max_loop >= E, "Traits::max_loop - incorrect value!");
-    static_assert(Traits::initial_location_size > 1, "Traits::initial_location_size - incorrect value!");
+    static_assert(Traits::max_evict >= 1, "Traits::max_evict - incorrect value!");
+    static_assert(Traits::initial_location_size > 2, "Traits::initial_location_size - incorrect value!");
 private:
     using keyval_t = std::pair<const Key, T>;
     using keyval_mutable_t = std::pair<Key, T>;
     using hash_funcs_t = std::array<HashFunc, E>;
     using location_t = Location<keyval_t, Allocator>;
-    using ins_route_t = std::array< std::pair<size_t, size_t>, Traits::max_loop* E>;
+    using ins_route_t = std::array< std::pair<size_t, size_t>, 2*Traits::max_evict>;
     using location_array_t = std::array< std::unique_ptr<location_t>, E>;
+
+    // deep, parent_node index in queue, location index, hash index
+    using bfs_node_t = std::tuple<size_t, size_t, size_t, size_t>;
+
+    using bfs_queue_t = std::conditional_t<Traits::insert_method == InsertMethod::greed_bfs,
+        std::array< bfs_node_t, evict_to_queue_size(Traits::max_evict, E)>, nullptr_t>;
 
     hash_funcs_t hash_funcs;
     location_array_t locs;
     location_array_t tmp_locs; // используем во время рехеширования
-    size_t tmp_loc_size; // используем во время рехеширования
+    size_t tmp_loc_size;   // используем во время рехеширования
+    bfs_queue_t bfs_queue; // используем при вставке методом greed_dfs
     size_t rehash_tryes = false;
     size_t rehash_counter = 0;
 
 public:
-/*******************************************************************************
- *                          Iterators                                          *
- *******************************************************************************/
+    /*******************************************************************************
+     *                          Iterators                                          *
+     *******************************************************************************/
     template <typename TT>
     class iterator_base {
         friend CuckooHashTable;
@@ -139,7 +130,7 @@ public:
         };
     };
 
-     using iterator = iterator_base<keyval_t>;
+    using iterator = iterator_base<keyval_t>;
 
     iterator begin() {
         // Ищем первую не пустую локацию
@@ -161,19 +152,23 @@ public:
     const_iterator cend() { return end(); }
 
 private:
-/*******************************************************************************
-*            Private Methods                                                   *
-*******************************************************************************/
+    /*******************************************************************************
+    *            Private Methods                                                   *
+    *******************************************************************************/
+
+    size_t hash_index(size_t i, const Key& key){
+        return hash_funcs[i](key) % locs[0]->max_size();
+    }
+
     bool is_free_at_loc(size_t i, const Key& key, size_t& index_out) {
-        index_out = hash_funcs[i](key) % locs[0]->max_size();
+        index_out = hash_index(i, key); // hash_funcs[i](key) % locs[0]->max_size();
         return  !locs[i]->persist(index_out);
     };
-
-    /**
+    /** Построение маршрута перемещения методов DFS
      * return размер найденного пути или  0, если путь не найден
      */
-    size_t find_route(const Key& key, ins_route_t& route, size_t deep, size_t ignore_loc = E) {
-        if (deep >= Traits::max_loop) {
+    size_t find_route_dfs(const Key& key, ins_route_t& route, size_t deep = 0, size_t ignore_loc = E) {
+        if (deep >= Traits::max_evict) {
             return 0;
         }
         // Свободная локация для key?
@@ -193,7 +188,7 @@ private:
             auto other_key = locs[i]->get(hash_indexes[i])->first;
             route[deep] = { i, hash_indexes[i] };
             // Просматриваем другие локации для этого ключа
-            auto ret = find_route(other_key, route, deep + 1, i);
+            auto ret = find_route_dfs(other_key, route, deep + 1, i);
             if (ret > 0) {
                 return ret;
             }
@@ -201,14 +196,73 @@ private:
         return 0;
     }
 
+
+    /** Построение маршрута перемещения методом BFS
+      * return размер найденного пути или  0, если путь не найден
+      */
+    size_t find_route_bfs(const Key& key, ins_route_t& route) {
+        static_assert(Traits::insert_method == InsertMethod::greed_bfs);
+
+        size_t qhead = 0;
+        size_t qtail = 0;
+        for (size_t i = 0; i < E; i++) {
+            bfs_queue[qtail] = std::make_tuple( 0, 0, i, hash_index(i, key));
+            qtail++;
+        }
+        while (qhead < qtail ) {
+            auto [deep, parent_index, i, h] = bfs_queue[qhead];
+            if (!locs[i]->persist(h)) {
+                auto ri = deep;
+                while (true) {
+                    route[ri] = { std::get<2>(bfs_queue[qhead]), std::get<3>(bfs_queue[qhead]) };
+                    parent_index = std::get<1>(bfs_queue[qhead]);
+                    if (ri == 0) {
+                        break;
+                    }
+                    qhead = parent_index;
+                    ri--;
+                };
+                return deep + 1;
+            }
+            // TODO alternative - оганичивать по глубине
+            else if (qtail + E - 1 < evict_to_queue_size(Traits::max_evict, E)) {
+                // Другие локации для этого ключа ставим в очередь
+                const auto& key = locs[i]->get(h)->first;
+                const auto parent_index = qhead;
+                for (size_t j = 0; j < E; j++) {
+                    if (j == i) {
+                        continue;
+                    }
+                    bfs_queue[qtail] = std::make_tuple(deep + 1, parent_index, j, hash_index(j, key));
+                    qtail++;
+                }
+            }
+            qhead++;
+        }
+        return 0;
+    }
+
+
     /**
-      * @brief Вставка с выталкиванием "жадным" алгоритмом
+      * @brief Вставка с выталкиванием "жадным" алгоритмом DFS
       * @return iterator - место вставленного элемента, или end();
       */
     iterator insert_greed(const keyval_t& kv) {
         // Creating insertion list
         ins_route_t route;
-        size_t evict_sz = find_route(kv.first, route, 0);
+        size_t evict_sz;
+        if constexpr (Traits::insert_method == InsertMethod::greed_bfs) {
+            evict_sz = find_route_bfs(kv.first, route);
+        }
+        else if constexpr (Traits::insert_method == InsertMethod::greed_dfs) {
+            evict_sz = find_route_dfs(kv.first, route);
+        }
+        else {
+            static_assert(Traits::insert_method != InsertMethod::greed_dfs
+                && Traits::insert_method != InsertMethod::greed_bfs,
+                "Incorrect insert method in Traits");
+        }
+
         if (evict_sz == 0) {
             return end();
         }
@@ -228,9 +282,8 @@ private:
      * @return iterator - место вставленного элемента, или end();
      */
     iterator insert_classic(keyval_mutable_t& x) {
-        size_t loop = 0;
-        while (loop < Traits::max_loop) {
-            loop++;
+        size_t evict = 0;
+        while (evict < Traits::max_evict) {
             for (size_t i = 0; i < E; i++) {
                 size_t index;
                 if (is_free_at_loc(i, x.first, index)) {
@@ -241,11 +294,13 @@ private:
                     auto tmp = std::move((*locs[i])[index]);
                     locs[i]->set(index, std::move(x));
                     x = std::move(tmp);
+                    evict++;
                 }
             }
         }
         return end();
     }
+
 
 public:
     /*******************************************************************************
@@ -264,16 +319,16 @@ public:
 
     iterator find(const Key& key) noexcept {
         for (size_t i = 0; i < E; i++) {
-            const auto hash = hash_funcs[i](key) % locs[0]->max_size();
-            auto kv = locs[i]->get(hash);
+            const auto hi = hash_index(i, key);
+            auto kv = locs[i]->get(hi);
             if (kv != nullptr && key == kv->first) {
-                return iterator(&locs, i, hash);
+                return iterator(&locs, i, hi);
             }
         }
         return end();
     }
 
-    bool contains(const Key& key) noexcept {
+    bool count(const Key& key) noexcept {
         return find(key) != end();
     }
 
@@ -339,7 +394,8 @@ public:
                 }
             };
         }
-        else if constexpr (Traits::insert_method == InsertMethod::greed) {
+        else if constexpr (Traits::insert_method == InsertMethod::greed_dfs
+            || Traits::insert_method == InsertMethod::greed_bfs) {
             iter = insert_greed(kv);
             if (iter == end()) {
                 if (rehash()) {
@@ -351,8 +407,9 @@ public:
         }
         else {
             static_assert(Traits::insert_method != InsertMethod::classic
-                && Traits::insert_method != InsertMethod::greed,
-                "Unknown insert method in Traits");
+                && Traits::insert_method != InsertMethod::greed_dfs
+                && Traits::insert_method != InsertMethod::greed_bfs
+                , "Unknown insert method in Traits");
         }
         return { iter, true };
     }
@@ -362,16 +419,16 @@ public:
         rehash_counter++;
         rehash_tryes++;
         if (rehash_tryes > Traits::max_rehash_tryes + 1) {
-            lg0 << "Rehashing failed (limit exceed)..." << std::endl;
+            // Rehashing failed (limit exceed)...
             rehash_tryes = 0;
             return false;
         }
         if (rehash_tryes > 1) {
-            lg0 << "Rehashing one more time" << std::endl;
+            // Rehashing one more time
             tmp_loc_size = tmp_loc_size * Traits::resize_factor;
         }
         else {
-            lg0 << "Rehashing..." << std::endl;
+            // Start rehashing
             tmp_loc_size = locs[0]->max_size() * Traits::resize_factor;
         }
 
@@ -391,11 +448,13 @@ public:
                         // Откат назад
                         for (size_t i = 0; i < E; i++) {
                             tmp_locs[i].swap(locs[i]);
+                            tmp_locs[i].reset();
                         }
                         return rehash();
                     }
                 }
-                else if constexpr (Traits::insert_method == InsertMethod::greed) {
+                else if constexpr (Traits::insert_method == InsertMethod::greed_dfs
+                    || Traits::insert_method == InsertMethod::greed_bfs) {
                     if (insert_greed(kv) == end()) {
                         // При встаавке снова нужно рехеширование
                         // Откат назад

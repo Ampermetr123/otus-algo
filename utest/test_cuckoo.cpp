@@ -60,8 +60,8 @@ TEST(Test_CuckooHT, test_insert_access) {
     ASSERT_EQ(ht[1], 11);
   }
 
-  ASSERT_TRUE(ht.contains(1));
-  ASSERT_FALSE(ht.contains(5));
+  ASSERT_TRUE(ht.count(1));
+  ASSERT_FALSE(ht.count(5));
 }
 
 TEST(Test_CuckooHT, test_erase) {
@@ -114,8 +114,8 @@ TEST(Test_CuckooHT, test_classic_layout) {
   EXPECT_FALSE(correct_it != classic_layout.end());
 }
 
-TEST(Test_CuckooHT, test_greed) {
-  CuckooHashTable<int, int, decltype(&h1), 2, CHT_Traits_Greed> ht({ &h1, &h2 });
+TEST(Test_CuckooHT, test_greed_dfs) {
+  CuckooHashTable<int, int, decltype(&h1), 2, CHT_Traits_Greed_DFS> ht({ &h1, &h2 });
   std::vector<int> keys = { 20, 50, 53, 75, 100, 67, 105, 3, 36, 39 };
   for (auto k : keys) {
     const auto& [it, res] = ht.insert({ k, k * k });
@@ -125,10 +125,29 @@ TEST(Test_CuckooHT, test_greed) {
   EXPECT_EQ(ht.size(), keys.size());
   for (auto k : keys) {
     ASSERT_EQ(ht[k], k * k);
-    ASSERT_TRUE(ht.contains(k));
+    ASSERT_TRUE(ht.count(k));
     ASSERT_TRUE(ht.find(k) != ht.end());
   }
 }
+
+
+TEST(Test_CuckooHT, test_greed_bfs2) {
+  CuckooHashTable<int, int, decltype(&h1), 2, CHT_Traits_Greed_BFS2> ht({ &h1, &h2 });
+  std::vector<int> keys = { 20, 50, 53, 75, 100, 67, 105, 3, 36, 39 };
+  for (auto k : keys) {
+    const auto& [it, res] = ht.insert({ k, k * k });
+    ASSERT_TRUE(it != ht.end()) << " with key " << k;
+    ASSERT_TRUE(res);
+    ht.print();
+  }
+  EXPECT_EQ(ht.size(), keys.size());
+  for (auto k : keys) {
+    ASSERT_EQ(ht[k], k * k) << "with key = "<<k;
+    ASSERT_TRUE(ht.count(k));
+    ASSERT_TRUE(ht.find(k) != ht.end());
+  }
+}
+
 
 TEST(Test_CuckooHT, test_rehash_limit) {
   // Плохие хеш функции - увеличение таблиц не решает проблемы
@@ -156,7 +175,7 @@ TEST(Test_CuckooHT, test_rehash_classic) {
     ASSERT_TRUE(b) << "with key=" << k;
   }
   ASSERT_EQ(ht.size(), keys.size());
-  ASSERT_EQ(ht.get_rehash_counter(), 1);
+  EXPECT_EQ(ht.get_rehash_counter(), 1);
   EXPECT_EQ(ht.size(), keys.size());
   for (const auto& [k, v] : ht) {
     ASSERT_TRUE(std::find(keys.begin(), keys.end(), k) != keys.end());
@@ -164,8 +183,8 @@ TEST(Test_CuckooHT, test_rehash_classic) {
   }
 }
 
-TEST(Test_CuckooHT, test_rehash_greed) {
-  CuckooHashTable<int, int, decltype(&h11), 2, CHT_Traits_Greed> ht({ &h11, &h22 });
+TEST(Test_CuckooHT, test_rehash_greed_DFS) {
+  CuckooHashTable<int, int, decltype(&h11), 2, CHT_Traits_Greed_DFS2> ht({ &h11, &h22 });
   std::array keys =
   { 20, 50, 53, 75, 100, 67, 105, 3, 36, 39 , 15, 13, 31, 33, 29, 18, 65, 78 };
   ASSERT_EQ(ht.get_rehash_counter(), 0);
@@ -175,7 +194,7 @@ TEST(Test_CuckooHT, test_rehash_greed) {
     ASSERT_TRUE(b) << "with key=" << k;
   }
   ASSERT_EQ(ht.size(), keys.size());
-  ASSERT_EQ(ht.get_rehash_counter(), 1);
+  EXPECT_EQ(ht.get_rehash_counter(), 1);
   EXPECT_EQ(ht.size(), keys.size());
   for (const auto& [k, v] : ht) {
     ASSERT_TRUE(std::find(keys.begin(), keys.end(), k) != keys.end());

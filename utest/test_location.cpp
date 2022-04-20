@@ -66,7 +66,6 @@ TEST(Test_Location, test_erase) {
     loc.erase(4);
     EXPECT_EQ(B::destructor_count(), 2);
     EXPECT_EQ(loc.count(), 0);
-
 }
 
 
@@ -128,35 +127,6 @@ TEST(Test_Location, test_const_iterator) {
     EXPECT_EQ(*it, "800");
     it++;
     EXPECT_STRCASEEQ(it->c_str(), "1000");
-
-    //  not compile for const_operator
-    // *it = "1000+";
-    // EXPECT_EQ(loc[1000], "1000+");
-
     it++;
     EXPECT_EQ(it, end);
 }
-
-
-
-
-//   HashTable<int, std::string, simple_hash_code > ht;
-//   ASSERT_EQ(ht.get_buckets_count(), 0);
-//   ASSERT_EQ(ht.size(), 0);
-//   ASSERT_FLOAT_EQ(ht.get_load_factor(), 0);
-
-//   auto result = ht.insert(1, "one");
-//   ASSERT_TRUE(result);
-//   ASSERT_EQ(ht.get_buckets_count(), 1) << "must be 1 bucket after insertion 1 element";
-//   result = ht.insert(2, "two");
-//   ASSERT_TRUE(result);
-//   ASSERT_EQ(ht.get_buckets_count(), 2) << "must be 2 bucket after insertion 2 element";
-
-//   ASSERT_EQ(ht.size(), 2)<<"size must be 2 after insertion 2 elements";
-
-//   EXPECT_FLOAT_EQ(ht.get_load_factor(), 1) << "each element in own bucket, so load factor must be 1.0";
-
-//   ht.insert(1 + int(ht.get_vector_size()) , "the same bucket as one");
-//   EXPECT_FLOAT_EQ(ht.get_load_factor(), 1.5) << "2 elements in same bucket and 1 element in it's onw bucket - 1.5";
-
-// }

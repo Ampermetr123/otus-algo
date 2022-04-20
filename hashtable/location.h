@@ -3,7 +3,6 @@
 #include <memory>
 #include <iostream>
 #include <iterator>
-#include "optlog.h"
 #include <string.h>
 #include <cassert>
 
@@ -121,9 +120,7 @@ public:
      *******************************************************************************/
 
     explicit Location(size_t size);
-    ~Location() {
-         lg1 << "Loacation destructor of size = " << size << std::endl;
-    };
+    ~Location() = default;
 
     iterator begin() { return iterator(this, get_next_persisted_index(0)); }
     iterator end() { return iterator(this, size); }
@@ -160,7 +157,6 @@ template<typename T, class Allocator>
 Location<T, Allocator>::Location(size_t size) :size(size) {
     // Persistance map allocation
     auto bitset_size = (size % 8 > 0) ? (size / 8 + 1) : (size / 8);
-    lg1 << "Loacation constructor of size = " << size << ", bitsize = " << bitset_size << std::endl;
     ppersist.reset(char_allocator_t::allocate(char_alloc, bitset_size),
         [size, this](uint8_t* ptr) { char_allocator_t::deallocate(char_alloc, ptr, size); }
     );

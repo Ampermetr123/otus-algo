@@ -22,3 +22,16 @@ if (MSVC)
 else ()
    target_compile_options(${This} PRIVATE -Wall -Wextra -pedantic)
 endif()
+
+
+add_custom_command(TARGET ${This} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/alice.txt"
+    "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_custom_command(TARGET ${This} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/war_and_peace.txt"
+    "${CMAKE_CURRENT_BINARY_DIR}"
+)
