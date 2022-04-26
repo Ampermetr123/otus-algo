@@ -25,11 +25,11 @@
 
 // compile time pow
 template<class T>
-inline constexpr T ct_pow(const T base, unsigned const exp){
+inline constexpr T ct_pow(const T base, unsigned int const exp){
     return (exp == 0) ? 1 : (base * ct_pow(base, exp-1));
 }
 
-static constexpr size_t evict_to_queue_size(size_t evict_sz, size_t locations_count) {
+static constexpr size_t evict_to_queue_size(unsigned int evict_sz, size_t locations_count) {
     if (locations_count > 2) {
         return  locations_count *  (ct_pow((locations_count - 1), evict_sz) - 1) / (locations_count-2);
     } else {
@@ -65,10 +65,8 @@ private:
 
     hash_funcs_t hash_funcs;
     location_array_t locs;
-    location_array_t tmp_locs; // используем во время рехеширования
-    size_t tmp_loc_size;   // используем во время рехеширования
     bfs_queue_t bfs_queue; // используем при вставке методом greed_dfs
-    size_t rehash_tryes = false;
+    size_t rehash_tryes = 0;
     size_t rehash_counter = 0;
 
 public:
@@ -227,13 +225,13 @@ private:
             // TODO alternative - оганичивать по глубине
             else if (qtail + E - 1 < evict_to_queue_size(Traits::max_evict, E)) {
                 // Другие локации для этого ключа ставим в очередь
-                const auto& key = locs[i]->get(h)->first;
-                const auto parent_index = qhead;
+                const auto& new_key = locs[i]->get(h)->first;
+                const auto  parent = qhead;
                 for (size_t j = 0; j < E; j++) {
                     if (j == i) {
                         continue;
                     }
-                    bfs_queue[qtail] = std::make_tuple(deep + 1, parent_index, j, hash_index(j, key));
+                    bfs_queue[qtail] = std::make_tuple(deep + 1, parent, j, hash_index(j, new_key));
                     qtail++;
                 }
             }
@@ -379,30 +377,45 @@ public:
             return { iter, false };
         }
         if constexpr (Traits::insert_method == InsertMethod::classic) {
-            keyval_mutable_t kv_copy = kv;
-            // создаем копию, так как insert_classic...
+            keyval_mutable_t kv_copy = kv; // создаем копию, так как insert_classic...
             iter = insert_classic(kv_copy);
             if (iter == end()) {
-                // kv_copy содержит вытесненный элемент
-                if (rehash()) {
-                    auto ret = insert(kv_copy);
-                    rehash_tryes = 0;
-                    return ret;
+                while (rehash_tryes < Traits::max_rehash_tryes) {
+                    rehash_tryes++;
+                    auto sz = size();
+                    auto new_sz = static_cast<size_t>(sz * rehash_tryes * Traits::resize_factor);
+                    if (new_sz <= sz) {
+                        new_sz = sz + 1;
+                    }
+                    if (rehash(new_sz)) {
+                        auto ret = insert(kv_copy);
+                        rehash_tryes = 0;
+                        return ret;
+                    }
                 }
-                else {
-                    return { end(), false };
-                }
-            };
+                return { end(), false };
+            }
+
         }
         else if constexpr (Traits::insert_method == InsertMethod::greed_dfs
             || Traits::insert_method == InsertMethod::greed_bfs) {
             iter = insert_greed(kv);
             if (iter == end()) {
-                if (rehash()) {
-                    auto ret = insert(kv);
-                    rehash_tryes = 0;
-                    return ret;
+                while (rehash_tryes < Traits::max_rehash_tryes)
+                {
+                    rehash_tryes++;
+                    auto sz = size();
+                    auto new_sz = static_cast<size_t>(sz * rehash_tryes * Traits::resize_factor);
+                    if (new_sz <= sz) {
+                        new_sz = sz + 1;
+                    }
+                    if (rehash(new_sz)) {
+                        auto ret = insert(kv);
+                        rehash_tryes = 0;
+                        return ret;
+                    }
                 }
+                return { end(), false };
             }
         }
         else {
@@ -415,62 +428,54 @@ public:
     }
 
 
-    bool rehash() {
-        rehash_counter++;
-        rehash_tryes++;
-        if (rehash_tryes > Traits::max_rehash_tryes + 1) {
-            // Rehashing failed (limit exceed)...
-            rehash_tryes = 0;
+    bool rehash(size_t new_loc_size /*,size_t rehash_tryes=0*/) {
+        if ( new_loc_size < Traits::initial_location_size) {
             return false;
         }
-        if (rehash_tryes > 1) {
-            // Rehashing one more time
-            tmp_loc_size = tmp_loc_size * Traits::resize_factor;
-        }
-        else {
-            // Start rehashing
-            tmp_loc_size = locs[0]->max_size() * Traits::resize_factor;
-        }
-
+        rehash_counter++;
+        location_array_t tmp_locs;
         // переносим даннные во временный массив tmp_locs
-        // основной массив  - пустой с увеличенной памятью
+        // основной массив - пустой с увеличенной памятью
         for (size_t i = 0; i < E; i++) {
             tmp_locs[i].swap(locs[i]);
-            locs[i].reset(new location_t(tmp_loc_size));
+            locs[i].reset(new location_t(new_loc_size));
         }
+
         // вставка данных в новые локации
+        bool rehash_result = true;
         for (size_t i = 0; i < E; i++) {
             for (auto& kv : *tmp_locs[i]) {
                 if constexpr (Traits::insert_method == InsertMethod::classic) {
                     keyval_mutable_t kv_copy = kv;
                     if (insert_classic(kv_copy) == end()) {
-                        // При встаавке снова нужно рехеширование
-                        // Откат назад
-                        for (size_t i = 0; i < E; i++) {
-                            tmp_locs[i].swap(locs[i]);
-                            tmp_locs[i].reset();
-                        }
-                        return rehash();
+                        rehash_result = false;
+                        break;
                     }
                 }
                 else if constexpr (Traits::insert_method == InsertMethod::greed_dfs
                     || Traits::insert_method == InsertMethod::greed_bfs) {
                     if (insert_greed(kv) == end()) {
-                        // При встаавке снова нужно рехеширование
-                        // Откат назад
-                        for (size_t i = 0; i < E; i++) {
-                            tmp_locs[i].swap(locs[i]);
-                        }
-                        return rehash();
+                        rehash_result = false;
+                        break;
                     }
                 }
             }
         }
+
+        if (rehash_result == false) {
+            // Откат назад
+            for (size_t i = 0; i < E; i++) {
+                tmp_locs[i].swap(locs[i]);
+            }
+        };
+
         for (size_t i = 0; i < E; i++) {
             tmp_locs[i].reset();
         }
-        return true;
+
+        return rehash_result;
     };
+
 
     float get_load() {
         return float(size()) / (E * locs[0]->max_size()) * 100;

@@ -46,13 +46,15 @@ TEST(Test_CuckooHT, iterator) {
 
 TEST(Test_CuckooHT, test_insert_access) {
   CuckooHashTable<int, int, decltype(&h1), 2> ht({ &h1, &h2 });
-  const auto& [it, b] = ht.insert({ 2, 22 });
-  ASSERT_TRUE(b);
-  std::pair<const int, int> x(2, 22);
-  ASSERT_EQ(*it, x);
-  ASSERT_EQ(ht[2], 22);
-  ht[1] = 11;
-  ASSERT_EQ(ht[1], 11);
+  {
+    const auto& [it, b] = ht.insert({ 2, 22 });
+    ASSERT_TRUE(b);
+    std::pair<const int, int> x(2, 22);
+    ASSERT_EQ(*it, x);
+    ASSERT_EQ(ht[2], 22);
+    ht[1] = 11;
+    ASSERT_EQ(ht[1], 11);
+  }
 
   {
     const auto& [it, b] = ht.insert({ 1, 0 });
@@ -138,7 +140,6 @@ TEST(Test_CuckooHT, test_greed_bfs2) {
     const auto& [it, res] = ht.insert({ k, k * k });
     ASSERT_TRUE(it != ht.end()) << " with key " << k;
     ASSERT_TRUE(res);
-    ht.print();
   }
   EXPECT_EQ(ht.size(), keys.size());
   for (auto k : keys) {

@@ -12,7 +12,6 @@ enum class InsertMethod {
     greed_bfs   // "Жадный" алгоритм для вставки BFS
 };
 
-
 /**
  * Максимальное количество операций сравнения
  *  при поиске места вставки  (N = max_loop)
@@ -33,7 +32,7 @@ struct CHT_Traits_Classic__ {};
 template<>
 struct CHT_Traits<CHT_Traits_Classic__> {
     static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_evict = 32;
+    static inline constexpr unsigned max_evict = 33;
     static inline constexpr size_t initial_location_size = 10;
     static inline constexpr size_t max_rehash_tryes = 3;
     static inline constexpr auto insert_method = InsertMethod::classic;
@@ -45,7 +44,7 @@ struct CHT_Traits_Greed_BFS2__ {};
 template<>
 struct CHT_Traits<CHT_Traits_Greed_BFS2__> {
     static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_evict = 32 ;
+    static inline constexpr unsigned max_evict = 33 ;
     static inline constexpr size_t initial_location_size = 10;
     static inline constexpr size_t max_rehash_tryes = 3;
     static inline constexpr auto insert_method = InsertMethod::greed_bfs;
@@ -57,7 +56,7 @@ struct CHT_Traits_Greed_DFS2__ {};
 template<>
 struct CHT_Traits<CHT_Traits_Greed_DFS2__> {
     static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_evict = 32;
+    static inline constexpr unsigned max_evict = 33;
     static inline constexpr size_t initial_location_size = 10;
     static inline constexpr size_t max_rehash_tryes = 3;
     static inline constexpr auto insert_method = InsertMethod::greed_dfs;
@@ -69,7 +68,7 @@ struct CHT_Traits_Greed_BFS__ {};
 template<>
 struct CHT_Traits<CHT_Traits_Greed_BFS__> {
     static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_evict = 4 ;
+    static inline constexpr unsigned max_evict = 4 ;
     static inline constexpr size_t initial_location_size = 10;
     static inline constexpr size_t max_rehash_tryes = 3;
     static inline constexpr auto insert_method = InsertMethod::greed_bfs;
@@ -81,7 +80,7 @@ struct CHT_Traits_Greed_DFS__ {};
 template<>
 struct CHT_Traits<CHT_Traits_Greed_DFS__> {
     static inline constexpr float resize_factor = 1.5;
-    static inline constexpr size_t max_evict = 4;
+    static inline constexpr unsigned max_evict = 4;
     static inline constexpr size_t initial_location_size = 10;
     static inline constexpr size_t max_rehash_tryes = 3;
     static inline constexpr auto insert_method = InsertMethod::greed_dfs;
