@@ -17,10 +17,10 @@
 template <typename T, typename Allocator = std::allocator<T> >
 class Location {
 
-    using data_allocator_t = std::allocator_traits<Allocator>;
-    using char_allocator_t = std::allocator_traits< typename Allocator:: template rebind<uint8_t>::other >;
+    using data_allocator_tr = std::allocator_traits<Allocator>;
     Allocator data_alloc;
-    typename Allocator:: template rebind<uint8_t>::other char_alloc;
+    using char_allocator_tr = typename data_allocator_tr::template rebind_traits<uint8_t>;
+    typename data_allocator_tr::template rebind_alloc<uint8_t> char_alloc;
 
     const size_t size;
     size_t fill_size = 0;
@@ -157,21 +157,21 @@ template<typename T, class Allocator>
 Location<T, Allocator>::Location(size_t size) :size(size) {
     // Persistance map allocation
     auto bitset_size = (size % 8 > 0) ? (size / 8 + 1) : (size / 8);
-    ppersist.reset(char_allocator_t::allocate(char_alloc, bitset_size),
-        [size, this](uint8_t* ptr) { char_allocator_t::deallocate(char_alloc, ptr, size); }
+    ppersist.reset(char_allocator_tr::allocate(char_alloc, bitset_size),
+        [bitset_size, this](uint8_t* ptr) { char_allocator_tr::deallocate(char_alloc, ptr, bitset_size); }
     );
     memset(static_cast<void*>(ppersist.get()), 0, bitset_size);
 
     // Data allocation
-    pdata.reset(data_allocator_t::allocate(data_alloc, size),
+    pdata.reset(data_allocator_tr::allocate(data_alloc, size),
         [pp = ppersist, size, &alloc = data_alloc](T* ptr) {
             // destroy every object, that where created
             for (size_t i = 0; i < size; i++) {
                 if (Location::get_bit(pp.get(), i)) {
-                    data_allocator_t::destroy(alloc, ptr + i);
+                    data_allocator_tr::destroy(alloc, ptr + i);
                 }
             }
-            data_allocator_t::deallocate(alloc, ptr, size);
+            data_allocator_tr::deallocate(alloc, ptr, size);
         }
     );
 }
@@ -187,12 +187,12 @@ template<typename T, class Allocator>
 template <typename... Args>
 void Location<T, Allocator>::emplace(size_t index, Args&&... args) {
     if (persist(index)) {
-        data_allocator_t::destroy(data_alloc, pdata.get() + index);
+        data_allocator_tr::destroy(data_alloc, pdata.get() + index);
     }
     else {
         fill_size++;
     }
-    data_allocator_t::construct(data_alloc, pdata.get() + index, std::forward<Args>(args)...);
+    data_allocator_tr::construct(data_alloc, pdata.get() + index, std::forward<Args>(args)...);
     Location::set_bit(ppersist.get(), index);
 
 }
@@ -202,12 +202,12 @@ template<typename T, class Allocator>
 template<typename U>
 void Location<T, Allocator>::set(size_t index, U&& val) {
     if (persist(index)) {
-        data_allocator_t::destroy(data_alloc, pdata.get() + index);
+        data_allocator_tr::destroy(data_alloc, pdata.get() + index);
     }
     else {
         fill_size++;
     }
-    data_allocator_t::construct(data_alloc, pdata.get() + index, std::forward<U>(val));
+    data_allocator_tr::construct(data_alloc, pdata.get() + index, std::forward<U>(val));
     Location::set_bit(ppersist.get(), index);
 }
 
@@ -233,7 +233,7 @@ void Location<T, Allocator>::erase(typename Location<T, Allocator>::iterator it)
 template<typename T, class Allocator>
 void Location<T, Allocator>::erase(size_t index) {
     if (persist(index)) {
-        data_allocator_t::destroy(data_alloc, pdata.get() + index);
+        data_allocator_tr::destroy(data_alloc, pdata.get() + index);
         clear_bit(ppersist.get(), index);
         fill_size--;
     }

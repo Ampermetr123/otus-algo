@@ -393,6 +393,7 @@ public:
                         return ret;
                     }
                 }
+                rehash_tryes = 0;
                 return { end(), false };
             }
 
@@ -415,6 +416,7 @@ public:
                         return ret;
                     }
                 }
+                rehash_tryes = 0;
                 return { end(), false };
             }
         }
@@ -428,7 +430,7 @@ public:
     }
 
 
-    bool rehash(size_t new_loc_size /*,size_t rehash_tryes=0*/) {
+    bool rehash(size_t new_loc_size) {
         if ( new_loc_size < Traits::initial_location_size) {
             return false;
         }
