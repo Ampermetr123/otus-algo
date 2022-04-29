@@ -23,23 +23,24 @@
   *                          Helpers                                     *
   ************************************************************************/
 
-// compile time pow
+  // compile time pow
 template<class T>
-inline constexpr T ct_pow(const T base, unsigned int const exp){
-    return (exp == 0) ? 1 : (base * ct_pow(base, exp-1));
+inline constexpr T ct_pow(const T base, unsigned int const exp) {
+    return (exp == 0) ? 1 : (base * ct_pow(base, exp - 1));
 }
 
 static constexpr size_t evict_to_queue_size(unsigned int evict_sz, size_t locations_count) {
     if (locations_count > 2) {
-        return  locations_count *  (ct_pow((locations_count - 1), evict_sz) - 1) / (locations_count-2);
-    } else {
-        return 2*(evict_sz+1);
+        return  locations_count * (ct_pow((locations_count - 1), evict_sz) - 1) / (locations_count - 2);
+    }
+    else {
+        return 2 * (evict_sz + 1);
     }
 }
 
- /************************************************************************
-  *                          CuckooHashTable                             *
-  ************************************************************************/
+/************************************************************************
+ *                          CuckooHashTable                             *
+ ************************************************************************/
 template <
     typename Key, typename T, typename HashFunc, std::size_t E,
     typename Traits = CHT_Traits_Classic,
@@ -49,23 +50,20 @@ class CuckooHashTable {
     static_assert(Traits::resize_factor > 1, "Traits::resize_factor incorrect value!");
     static_assert(Traits::max_evict >= 1, "Traits::max_evict - incorrect value!");
     static_assert(Traits::initial_location_size > 2, "Traits::initial_location_size - incorrect value!");
+    static_assert(Traits::insert_method == InsertMethod::classic ||
+        Traits::insert_method == InsertMethod::greed_dfs ||
+        Traits::insert_method == InsertMethod::greed_bfs,
+        "Traits::insert_method - incorrect value!");
 private:
     using keyval_t = std::pair<const Key, T>;
     using keyval_mutable_t = std::pair<Key, T>;
     using hash_funcs_t = std::array<HashFunc, E>;
     using location_t = Location<keyval_t, Allocator>;
-    using ins_route_t = std::array< std::pair<size_t, size_t>, 2*Traits::max_evict>;
+    using ins_route_t = std::array< std::pair<size_t, size_t>, 2 * Traits::max_evict>;
     using location_array_t = std::array< std::unique_ptr<location_t>, E>;
-
-    // deep, parent_node index in queue, location index, hash index
-    using bfs_node_t = std::tuple<size_t, size_t, size_t, size_t>;
-
-    using bfs_queue_t = std::conditional_t<Traits::insert_method == InsertMethod::greed_bfs,
-        std::array< bfs_node_t, evict_to_queue_size(Traits::max_evict, E)>, nullptr_t>;
 
     hash_funcs_t hash_funcs;
     location_array_t locs;
-    bfs_queue_t bfs_queue; // используем при вставке методом greed_dfs
     size_t rehash_tryes = 0;
     size_t rehash_counter = 0;
 
@@ -153,8 +151,7 @@ private:
     /*******************************************************************************
     *            Private Methods                                                   *
     *******************************************************************************/
-
-    size_t hash_index(size_t i, const Key& key){
+    size_t hash_index(size_t i, const Key& key) {
         return hash_funcs[i](key) % locs[0]->max_size();
     }
 
@@ -199,15 +196,16 @@ private:
       * return размер найденного пути или  0, если путь не найден
       */
     size_t find_route_bfs(const Key& key, ins_route_t& route) {
-        static_assert(Traits::insert_method == InsertMethod::greed_bfs);
-
+        using bfs_node_t = std::tuple<size_t, size_t, size_t, size_t>;
+        using bfs_queue_t =  std::array< bfs_node_t, evict_to_queue_size(Traits::max_evict, E)>;
+        bfs_queue_t bfs_queue;
         size_t qhead = 0;
         size_t qtail = 0;
         for (size_t i = 0; i < E; i++) {
-            bfs_queue[qtail] = std::make_tuple( 0, 0, i, hash_index(i, key));
+            bfs_queue[qtail] = std::make_tuple(0, 0, i, hash_index(i, key));
             qtail++;
         }
-        while (qhead < qtail ) {
+        while (qhead < qtail) {
             auto [deep, parent_index, i, h] = bfs_queue[qhead];
             if (!locs[i]->persist(h)) {
                 auto ri = deep;
@@ -277,7 +275,10 @@ private:
 
     /**
      * @brief Вставка с классической схемой выталкивания
-     * @return iterator - место вставленного элемента, или end();
+     * @return iterator - место вставленного элемента,
+     *          или end() - не удвачная вставка;
+     *  При неудачной вставке содержит элемент,
+     *  который бтолкнут
      */
     iterator insert_classic(keyval_mutable_t& x) {
         size_t evict = 0;
@@ -296,9 +297,31 @@ private:
                 }
             }
         }
-        return end();
+         return end();
     }
 
+    std::pair<iterator, bool> rehash_and_insert(const keyval_t& kv) {
+        if (rehash_tryes >= Traits::max_rehash_tryes) {
+            rehash_tryes = 0;
+            return { end(), false };
+        }
+
+        rehash_tryes++;
+        const auto sz = size();
+        auto new_sz = static_cast<size_t>(sz * rehash_tryes * Traits::resize_factor);
+        if (new_sz <= sz) {
+            new_sz = sz + 1;
+        }
+
+        if (rehash(new_sz)) {
+            auto ret = insert(kv);  // coul make recuresive call rehash_and_insert
+            rehash_tryes = 0;
+            return ret;
+        }
+        else {
+            return rehash_and_insert(kv);
+        }
+    }
 
 public:
     /*******************************************************************************
@@ -365,73 +388,31 @@ public:
         }
     }
 
-    /** Вставка в ключа и значения в таблицу
-    * @return iterator и boolean
-    * iterator указывает на вставленный/существующей элемент
-    * или = end(), если вставка завершена ошибкой
-    * boolean = true элемент быставлен, false - ключ существовал, элемент не был вставлен.
-    */
+
     std::pair<iterator, bool> insert(const keyval_t& kv) {
         auto iter = find(kv.first);
         if (iter != end()) {
             return { iter, false };
         }
         if constexpr (Traits::insert_method == InsertMethod::classic) {
-            keyval_mutable_t kv_copy = kv; // создаем копию, так как insert_classic...
-            iter = insert_classic(kv_copy);
+            keyval_mutable_t x = kv;
+            iter = insert_classic(x);
             if (iter == end()) {
-                while (rehash_tryes < Traits::max_rehash_tryes) {
-                    rehash_tryes++;
-                    auto sz = size();
-                    auto new_sz = static_cast<size_t>(sz * rehash_tryes * Traits::resize_factor);
-                    if (new_sz <= sz) {
-                        new_sz = sz + 1;
-                    }
-                    if (rehash(new_sz)) {
-                        auto ret = insert(kv_copy);
-                        rehash_tryes = 0;
-                        return ret;
-                    }
-                }
-                rehash_tryes = 0;
-                return { end(), false };
+                return rehash_and_insert(x);
             }
-
         }
-        else if constexpr (Traits::insert_method == InsertMethod::greed_dfs
-            || Traits::insert_method == InsertMethod::greed_bfs) {
+        else {  // InsertMethod::greed_dfs or InsertMethod::greed_bfs
             iter = insert_greed(kv);
             if (iter == end()) {
-                while (rehash_tryes < Traits::max_rehash_tryes)
-                {
-                    rehash_tryes++;
-                    auto sz = size();
-                    auto new_sz = static_cast<size_t>(sz * rehash_tryes * Traits::resize_factor);
-                    if (new_sz <= sz) {
-                        new_sz = sz + 1;
-                    }
-                    if (rehash(new_sz)) {
-                        auto ret = insert(kv);
-                        rehash_tryes = 0;
-                        return ret;
-                    }
-                }
-                rehash_tryes = 0;
-                return { end(), false };
+                return rehash_and_insert(kv);
             }
-        }
-        else {
-            static_assert(Traits::insert_method != InsertMethod::classic
-                && Traits::insert_method != InsertMethod::greed_dfs
-                && Traits::insert_method != InsertMethod::greed_bfs
-                , "Unknown insert method in Traits");
         }
         return { iter, true };
     }
 
 
     bool rehash(size_t new_loc_size) {
-        if ( new_loc_size < Traits::initial_location_size) {
+        if (new_loc_size < Traits::initial_location_size) {
             return false;
         }
         rehash_counter++;
@@ -446,16 +427,15 @@ public:
         // вставка данных в новые локации
         bool rehash_result = true;
         for (size_t i = 0; i < E; i++) {
-            for (auto& kv : *tmp_locs[i]) {
+            for (const auto& kv : *tmp_locs[i]) {
                 if constexpr (Traits::insert_method == InsertMethod::classic) {
-                    keyval_mutable_t kv_copy = kv;
-                    if (insert_classic(kv_copy) == end()) {
+                    keyval_mutable_t x = kv;
+                    if (insert_classic(x) == end()) {
                         rehash_result = false;
                         break;
                     }
                 }
-                else if constexpr (Traits::insert_method == InsertMethod::greed_dfs
-                    || Traits::insert_method == InsertMethod::greed_bfs) {
+                else {  // InsertMethod::greed_dfs or InsertMethod::greed_bfs
                     if (insert_greed(kv) == end()) {
                         rehash_result = false;
                         break;
@@ -465,16 +445,13 @@ public:
         }
 
         if (rehash_result == false) {
-            // Откат назад
             for (size_t i = 0; i < E; i++) {
                 tmp_locs[i].swap(locs[i]);
             }
         };
-
         for (size_t i = 0; i < E; i++) {
             tmp_locs[i].reset();
         }
-
         return rehash_result;
     };
 
@@ -483,19 +460,4 @@ public:
         return float(size()) / (E * locs[0]->max_size()) * 100;
     }
 
-    void print() {
-        for (size_t i = 0; i < E; i++) {
-            std::cout << "\nLocation " << i << ":" << std::endl;
-            auto loc_size = locs[0]->max_size();
-            for (size_t j = 0; j < loc_size; j++) {
-                if (locs[i]->persist(j)) {
-                    const auto& kv = *(locs[i]->get(j));
-                    std::cout << std::setw(3) << j << ": " << kv.first << "  -  " << kv.second << std::endl;
-                }
-                else {
-                    std::cout << std::setw(3) << j << ": * " << std::endl;
-                }
-            }
-        }
-    }
 };

@@ -104,7 +104,7 @@ public:
         }
         reference operator*()  const { return (*locptr)[pos]; }
         pointer operator->() const { return locptr->pdata.get() + pos; }
-        bool operator==(const iterator_base& rv) const { return (locptr == rv.locptr && pos == rv.pos); }
+        bool operator==(const iterator_base& rv) const { return (pos == rv.pos && locptr == rv.locptr); }
         bool operator!=(const iterator_base& rv) const { return !(*this == rv); }
         // one way conversion: iterator -> const_iterator
         operator iterator_base<T const>() const {
